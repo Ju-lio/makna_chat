@@ -214,6 +214,10 @@
 
       /* Design Responsivo para Mobile */
       @media (max-width: 768px) {
+        body {
+          background-color: #1e1e1e;
+        }
+
         .menubar,
         .toolbar {
           display: none; /* Esconde elementos não essenciais em mobile */
@@ -225,15 +229,33 @@
 
         .main-container {
           flex-direction: column;
+          background-color: #1e1e1e;
         }
 
         .content {
           width: 100%;
+          background-color: #1e1e1e;
+        }
+
+        #chat-container {
+          background-color: #1e1e1e;
         }
 
         .message {
           padding: 8px;
           font-size: 14px;
+          background-color: transparent;
+          border-bottom: 1px solid #2d2d2d;
+          color: #d4d4d4;
+        }
+
+        .message:hover {
+          background-color: #2d2d2d;
+        }
+
+        .message.selected {
+          background-color: #094771;
+          color: #ffffff;
         }
 
         .message-content {
@@ -245,11 +267,20 @@
         .username {
           color: #4ec9b0 !important;
           font-weight: bold;
+          font-size: 14px;
         }
 
         .timestamp {
           font-size: 11px;
           color: #858585 !important;
+        }
+
+        .message-text {
+          color: #d4d4d4;
+        }
+
+        .message.selected .message-text {
+          color: #ffffff;
         }
 
         .user-input {
@@ -275,7 +306,13 @@
         }
 
         #chat-container {
-          margin-bottom: 70px; /* Espaço para o input fixo */
+          margin-bottom: 45px; /* Espaço para o input fixo */
+          padding-bottom: 30px;
+          height: calc(100vh - 80px);
+          overflow-y: auto;
+        }
+
+        .chat-messages {
           padding-bottom: 20px;
         }
 
@@ -302,12 +339,22 @@
         /* Ajustes para orientação paisagem */
         @media (orientation: landscape) {
           #chat-container {
-            height: calc(100vh - 120px);
+            height: calc(100vh - 100px);
+            margin-bottom: 70px;
           }
 
           .user-input {
             height: 60px;
           }
+        }
+
+        /* Força scroll suave e visibilidade da última mensagem */
+        #chat-container {
+          scroll-behavior: smooth;
+        }
+
+        .message:last-child {
+          margin-bottom: 20px;
         }
       }
     </style>

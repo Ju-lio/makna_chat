@@ -11,13 +11,8 @@ Um chat em tempo real com interface estilo IDE, desenvolvido com Flask e JavaScr
 - Sistema de login simples
 - Codificação de mensagens em base64
 - Design responsivo para mobile
-
-### Chat Privado (/rato)
-
-- Rota privada para conversas reservadas
 - Som de notificação para novas mensagens
 - Título piscante quando minimizado
-- Mesma interface do chat principal
 - Codificação independente das mensagens
 
 ## 🛠️ Tecnologias Utilizadas

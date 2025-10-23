@@ -8,6 +8,50 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <style>
+      /* Esconde o player inicialmente */
+      #player-container {
+        display: none;
+      }
+    </style>
+    <script>
+      function extractYouTubeId(url) {
+        const regExp =
+          /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return match && match[2].length === 11 ? match[2] : null;
+      }
+
+      let currentVideo = null;
+
+      function loadYouTubeAndPlay(videoUrl) {
+        const videoId = extractYouTubeId(videoUrl);
+        if (!videoId) {
+          alert('URL do YouTube inválida');
+          return;
+        }
+
+        // Simplesmente abre no YouTube - BitDefender não bloqueará
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        const answer = confirm(
+          '🎬 Vídeo do YouTube detectado!\n\n' +
+            'O vídeo será aberto no YouTube em uma nova aba.\n\n' +
+            'Dica: Para usar em modo flutuante (como no Teams):\n' +
+            '1. Inicie o vídeo no YouTube\n' +
+            '2. Clique com botão direito no vídeo\n' +
+            '3. Selecione "Picture-in-Picture"\n\n' +
+            'Deseja abrir o vídeo?',
+        );
+
+        if (answer) {
+          window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
+          console.log('Vídeo aberto no YouTube! 🎬');
+        }
+
+        currentVideo = videoId;
+      }
+    </script>
+    <style>
       html,
       body {
         font-family: Segoe UI, Arial, sans-serif;
@@ -199,9 +243,10 @@
         background: #3d3d3d;
       }
 
-      #youtube-frame {
+      #pip-video {
         width: 400px;
         height: 225px;
+        background: #000;
         border: none;
       }
 
@@ -228,7 +273,7 @@
           width: auto;
         }
 
-        #youtube-frame {
+        #pip-video {
           width: 100%;
           height: 200px;
         }
@@ -275,6 +320,21 @@
           ┗ 📁 utils
         </div>
       </div>
+      <script>
+        function watchVideo() {
+          const urlInput = document.getElementById('youtube-url');
+          const url = urlInput.value.trim();
+
+          if (!url) {
+            alert('Por favor, cole uma URL do YouTube');
+            return;
+          }
+
+          console.log('Carregando vídeo... 🎬');
+          loadYouTubeAndPlay(url);
+        }
+      </script>
+
       <div class="content">
         <div class="tab-bar">
           <div class="tab">Video Player</div>
@@ -291,13 +351,14 @@
           <div class="video-header">
             <span class="video-title">YouTube Player</span>
             <div class="video-controls">
+              <button class="control-button" onclick="togglePiP()">📺</button>
               <button class="control-button" onclick="minimizeVideo()">
                 _
               </button>
               <button class="control-button" onclick="closeVideo()">✕</button>
             </div>
           </div>
-          <iframe id="youtube-frame" frameborder="0" allowfullscreen></iframe>
+          <video id="pip-video" controls></video>
         </div>
       </div>
     </div>
@@ -329,46 +390,82 @@
         return match && match[2].length === 11 ? match[2] : null;
       }
 
+      function loadYouTubeAndPlay(videoUrl) {
+        const videoId = getYouTubeVideoId(videoUrl);
+        if (!videoId) {
+          alert('URL do YouTube inválida');
+          return;
+        }
+
+        // Simplesmente abre no YouTube - BitDefender não bloqueará
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        const answer = confirm(
+          '🎬 Vídeo do YouTube detectado!\n\n' +
+            'O vídeo será aberto no YouTube em uma nova aba.\n\n' +
+            'Dica: Para usar em modo flutuante (como no Teams):\n' +
+            '1. Inicie o vídeo no YouTube\n' +
+            '2. Clique com botão direito no vídeo\n' +
+            '3. Selecione "Picture-in-Picture"\n\n' +
+            'Deseja abrir o vídeo?',
+        );
+
+        if (answer) {
+          window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
+          console.log('Vídeo aberto no YouTube! 🎬');
+        }
+      }
+
       function watchVideo() {
         const urlInput = document.getElementById('youtube-url');
         const url = urlInput.value.trim();
-        const videoId = getYouTubeVideoId(url);
 
-        if (videoId) {
-          const container = document.getElementById('video-container');
-          const iframe = document.getElementById('youtube-frame');
+        if (!url) {
+          alert('Por favor, cole uma URL do YouTube');
+          return;
+        }
 
-          iframe.src = `https://www.youtube.com/embed/${videoId}`;
-          container.style.display = 'block';
+        console.log('Carregando vídeo... 🎬');
+        loadYouTubeAndPlay(url);
+      }
 
-          if (isMinimized) {
-            toggleMinimize();
-          }
-        } else {
-          alert('Por favor, insira um link válido do YouTube');
+      function togglePiP() {
+        const video = document.getElementById('pip-video');
+
+        if (document.pictureInPictureElement) {
+          document.exitPictureInPicture();
+        } else if (document.pictureInPictureEnabled) {
+          video.requestPictureInPicture().catch((err) => {
+            console.error('Erro ao ativar PiP:', err);
+          });
         }
       }
 
       function closeVideo() {
         const container = document.getElementById('video-container');
-        const iframe = document.getElementById('youtube-frame');
+        const video = document.getElementById('pip-video');
 
         container.style.display = 'none';
-        iframe.src = '';
+        video.pause();
+        video.src = '';
         isMinimized = false;
+
+        if (document.pictureInPictureElement) {
+          document.exitPictureInPicture();
+        }
       }
 
       function minimizeVideo() {
         const container = document.getElementById('video-container');
-        const iframe = document.getElementById('youtube-frame');
+        const video = document.getElementById('pip-video');
 
         if (!isMinimized) {
-          originalHeight = iframe.style.height;
+          originalHeight = video.style.height;
           container.style.height = '32px';
-          iframe.style.display = 'none';
+          video.style.display = 'none';
         } else {
           container.style.height = 'auto';
-          iframe.style.display = 'block';
+          video.style.display = 'block';
         }
 
         isMinimized = !isMinimized;

@@ -110,6 +110,69 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #4f4f4f;
       }
+
+      /* Design Responsivo para Mobile */
+      @media (max-width: 768px) {
+        .menubar {
+          display: none;
+        }
+
+        .login-container {
+          width: 90%;
+          margin: 50px auto;
+          max-width: 400px;
+        }
+
+        .header h1 {
+          font-size: 14px;
+        }
+
+        .form-content {
+          padding: 24px 16px;
+        }
+
+        label {
+          font-size: 14px;
+          margin-bottom: 8px;
+        }
+
+        input {
+          padding: 12px;
+          font-size: 16px;
+          border-radius: 4px;
+        }
+
+        button {
+          padding: 12px 24px;
+          font-size: 14px;
+          width: 100%;
+          border-radius: 4px;
+        }
+
+        .button-container {
+          padding: 16px;
+        }
+
+        .status-bar {
+          font-size: 11px;
+          padding: 4px 8px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .login-container {
+          width: 95%;
+          margin: 30px auto;
+        }
+
+        .header {
+          padding: 12px;
+        }
+
+        .form-content {
+          padding: 20px 12px;
+        }
+      }
     </style>
   </head>
   <body>
