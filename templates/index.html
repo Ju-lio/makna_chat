@@ -197,10 +197,29 @@
         display: flex;
         align-items: center;
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
       }
       .message:hover {
         background-color: #2d2d2d;
         color: #d4d4d4;
+      }
+      .message.new-message .message-content span {
+        animation: glowText 0.8s ease-out;
+      }
+      @keyframes glowText {
+        0% {
+          color: #d4d4d4;
+          text-shadow: 0 0 5px #00d4ff, 0 0 10px #007acc;
+        }
+        50% {
+          color: #ffffff;
+          text-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px #007acc;
+        }
+        100% {
+          color: inherit;
+          text-shadow: none;
+        }
       }
       .message-number {
         color: #303030;
@@ -773,6 +792,16 @@
               messages.forEach((msg, index) => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message';
+
+                // Adiciona animação apenas para mensagens novas
+                if (index >= lastMessageCount) {
+                  messageDiv.classList.add('new-message');
+                  // Remove a classe após a animação terminar
+                  setTimeout(() => {
+                    messageDiv.classList.remove('new-message');
+                  }, 800);
+                }
+
                 messageDiv.innerHTML = `
                     <div class="message-number">${index + 1}</div>
                     <div class="message-content">
