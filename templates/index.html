@@ -155,6 +155,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        position: relative;
       }
       .tab-bar {
         background-color: #2d2d2d;
@@ -225,6 +226,47 @@
         color: white;
         display: flex;
         justify-content: space-between;
+      }
+      .typing-indicator {
+        background-color: #252526;
+        padding: 2px 16px;
+        font-size: 9px;
+        color: #858585;
+        font-style: italic;
+        min-height: 14px;
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #3d3d3d;
+      }
+      .typing-indicator.hidden #typing-text {
+        visibility: hidden;
+      }
+      .typing-indicator.hidden .typing-dots {
+        visibility: hidden;
+      }
+      .typing-dots {
+        display: inline-block;
+        margin-left: 4px;
+      }
+      .typing-dots span {
+        animation: blink 1.4s infinite;
+        animation-fill-mode: both;
+      }
+      .typing-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes blink {
+        0%,
+        80%,
+        100% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 1;
+        }
       }
       .user-input {
         background-color: #1e1e1e;
@@ -460,7 +502,7 @@
       <button>↻ Reiniciar</button>
     </div>
     <div class="main-container">
-      <div class="sidebar" id="sidebar">
+      <div class="sidebar minimized" id="sidebar">
         <div class="sidebar-header">
           <span>SALAS DE CHAT</span>
           <button
@@ -468,7 +510,7 @@
             onclick="toggleSidebar()"
             title="Minimizar/Expandir"
           >
-            <span id="toggle-icon">◀</span>
+            <span id="toggle-icon">▶</span>
           </button>
         </div>
         <div class="sidebar-content">
@@ -498,6 +540,12 @@
           </div>
         </div>
         <div id="chat-container"></div>
+        <div id="typing-indicator" class="typing-indicator">
+          <span id="typing-text"></span>
+          <span class="typing-dots">
+            <span>.</span><span>.</span><span>.</span>
+          </span>
+        </div>
         <div class="user-input">
           <input
             type="text"
@@ -520,7 +568,7 @@
       let isBlinking = false;
       let blinkInterval;
       let hoverTimeout;
-      let isManuallyMinimized = false;
+      let isManuallyMinimized = true; // Inicia minimizado por padrão
 
       // Controle da sidebar
       function toggleSidebar() {
@@ -562,6 +610,62 @@
           }
         });
       });
+
+      // Controle de digitação
+      let typingTimeout;
+      let isCurrentlyTyping = false;
+
+      function notifyTyping(isTyping) {
+        const roomId = window.location.pathname.substring(1) || 'geral';
+        const username = localStorage.getItem('chatUsername');
+
+        fetch('/typing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user: username,
+            room_id: roomId,
+            is_typing: isTyping,
+          }),
+        }).catch((error) =>
+          console.error('Erro ao notificar digitação:', error),
+        );
+      }
+
+      function updateTypingIndicator() {
+        const roomId = window.location.pathname.substring(1) || 'geral';
+        const username = localStorage.getItem('chatUsername');
+
+        fetch(`/typing?room_id=${roomId}&user=${username}`)
+          .then((response) => response.json())
+          .then((users) => {
+            const indicator = document.getElementById('typing-indicator');
+            const textEl = document.getElementById('typing-text');
+
+            if (users.length > 0) {
+              let text = '';
+              if (users.length === 1) {
+                text = `${users[0]} está digitando`;
+              } else if (users.length === 2) {
+                text = `${users[0]} e ${users[1]} estão digitando`;
+              } else {
+                text = `${users[0]}, ${users[1]} e mais ${
+                  users.length - 2
+                } estão digitando`;
+              }
+              textEl.textContent = text;
+              indicator.classList.remove('hidden');
+            } else {
+              textEl.textContent = '';
+              indicator.classList.add('hidden');
+            }
+          })
+          .catch((error) =>
+            console.error('Erro ao atualizar indicador:', error),
+          );
+      }
 
       // Função simples para codificar a mensagem durante a transmissão
       function encodeMessage(message) {
@@ -684,17 +788,37 @@
           });
       }
 
-      // Atualiza o chat a cada segundo
-      setInterval(updateChat, 1000);
+      // Atualiza o chat a cada 2 segundos (reduzido para economizar requisições)
+      setInterval(updateChat, 2000);
+
+      // Atualiza o indicador de digitação a cada 3 segundos (otimizado)
+      setInterval(updateTypingIndicator, 3000); // Detecta quando usuário está digitando
+      const messageInput = document.getElementById('message-input');
+
+      messageInput.addEventListener('input', function () {
+        if (!isCurrentlyTyping) {
+          isCurrentlyTyping = true;
+          notifyTyping(true);
+        }
+
+        // Reinicia o timeout
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          isCurrentlyTyping = false;
+          notifyTyping(false);
+        }, 2000);
+      });
 
       // Permite enviar mensagem com Enter
-      document
-        .getElementById('message-input')
-        .addEventListener('keypress', function (e) {
-          if (e.key === 'Enter') {
-            sendMessage();
-          }
-        });
+      messageInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+          // Para de indicar que está digitando ao enviar
+          clearTimeout(typingTimeout);
+          isCurrentlyTyping = false;
+          notifyTyping(false);
+        }
+      });
     </script>
   </body>
 </html>

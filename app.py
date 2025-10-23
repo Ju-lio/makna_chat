@@ -106,6 +106,9 @@ def send():
         print(f"Erro ao enviar mensagem: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+# Dicionário para controlar quem está digitando em cada sala
+typing_users = {}
+
 @app.route('/messages')
 def get_messages():
     """Retorna todas as mensagens de uma sala específica."""
@@ -116,6 +119,54 @@ def get_messages():
         return jsonify(room_messages[room_id])
     except Exception as e:
         print(f"Erro ao buscar mensagens: {e}")
+        return jsonify([])
+
+@app.route('/typing', methods=['POST'])
+def set_typing():
+    """Notifica que um usuário está digitando."""
+    try:
+        data = request.get_json()
+        user = data.get('user')
+        room_id = data.get('room_id', 'geral')
+        is_typing = data.get('is_typing', False)
+        
+        if room_id not in typing_users:
+            typing_users[room_id] = {}
+        
+        if is_typing:
+            typing_users[room_id][user] = datetime.now()
+        else:
+            typing_users[room_id].pop(user, None)
+        
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        print(f"Erro ao atualizar status de digitação: {e}")
+        return jsonify({'status': 'error'}), 500
+
+@app.route('/typing')
+def get_typing():
+    """Retorna lista de usuários que estão digitando."""
+    try:
+        room_id = request.args.get('room_id', 'geral')
+        current_user = request.args.get('user', '')
+        
+        if room_id not in typing_users:
+            return jsonify([])
+        
+        # Remove usuários que pararam de digitar há mais de 3 segundos
+        now = datetime.now()
+        active_users = []
+        
+        for user, last_typing in list(typing_users[room_id].items()):
+            if (now - last_typing).seconds < 3:
+                if user != current_user:  # Não inclui o próprio usuário
+                    active_users.append(user)
+            else:
+                typing_users[room_id].pop(user, None)
+        
+        return jsonify(active_users)
+    except Exception as e:
+        print(f"Erro ao buscar usuários digitando: {e}")
         return jsonify([])
 
 @app.route('/rato')
