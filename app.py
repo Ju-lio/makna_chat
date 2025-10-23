@@ -320,34 +320,70 @@ def private_chat():
 
 @app.route('/send-private', methods=['POST'])
 def send_private():
-    """Endpoint para enviar mensagens privadas."""
+    """Endpoint para enviar mensagens privadas entre usuários."""
     # Verifica autenticação
     if 'username' not in session:
         return jsonify({'status': 'error', 'message': 'Não autenticado'}), 401
     
     try:
         data = request.get_json()
+        from_user = session['username']
+        to_user = data['to_user']
+        message_text = data['message']
+        
+        # Cria ID único da conversa (sempre na mesma ordem alfabética)
+        users_sorted = sorted([from_user.lower(), to_user.lower()])
+        conversation_id = f"{users_sorted[0]}_{users_sorted[1]}"
+        
+        # Carrega mensagens da conversa
+        conv_file = f'data/private_{conversation_id}.json'
+        if os.path.exists(conv_file):
+            with open(conv_file, 'r', encoding='utf-8') as f:
+                messages = json.load(f)
+        else:
+            messages = []
+        
+        # Adiciona nova mensagem
         message = {
-            'user': data['user'],
-            'message': data['message'],
-            'timestamp': datetime.now().strftime('%H:%M:%S')
+            'from': from_user,
+            'to': to_user,
+            'message': message_text,
+            'timestamp': datetime.now().strftime('%H:%M:%S'),
+            'date': datetime.now().strftime('%Y-%m-%d')
         }
-        private_messages.append(message)
-        save_messages(private_messages, 'private_messages.json')
+        messages.append(message)
+        
+        # Salva mensagens
+        with open(conv_file, 'w', encoding='utf-8') as f:
+            json.dump(messages, f, indent=4, ensure_ascii=False)
+        
         return jsonify({'status': 'success'})
     except Exception as e:
         print(f"Erro ao enviar mensagem privada: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/messages-private')
-def get_private_messages():
-    """Retorna todas as mensagens do chat privado."""
+@app.route('/messages-private/<target_user>')
+def get_private_messages(target_user):
+    """Retorna mensagens privadas entre o usuário atual e outro usuário."""
     # Verifica autenticação
     if 'username' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
     
     try:
-        return jsonify(private_messages)
+        current_user = session['username']
+        
+        # Cria ID único da conversa
+        users_sorted = sorted([current_user.lower(), target_user.lower()])
+        conversation_id = f"{users_sorted[0]}_{users_sorted[1]}"
+        
+        # Carrega mensagens
+        conv_file = f'data/private_{conversation_id}.json'
+        if os.path.exists(conv_file):
+            with open(conv_file, 'r', encoding='utf-8') as f:
+                messages = json.load(f)
+            return jsonify(messages)
+        else:
+            return jsonify([])
     except Exception as e:
         print(f"Erro ao buscar mensagens privadas: {e}")
         return jsonify([])
