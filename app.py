@@ -88,6 +88,11 @@ def get_private_messages():
         print(f"Erro ao buscar mensagens privadas: {e}")
         return jsonify([])
 
+@app.route('/sewage')
+def sewage():
+    """Rota para o player de vídeos do YouTube."""
+    return render_template('sewage.html')
+
 if __name__ == '__main__':
     local_ip = get_local_ip()
     print(f"\nServidor rodando em: http://{local_ip}:5000")
