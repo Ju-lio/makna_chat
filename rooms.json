@@ -1,0 +1,48 @@
+{
+  "rooms": [
+    {
+      "id": "geral",
+      "name": "Sala Geral",
+      "url": "/",
+      "description": "Chat principal - Conversa geral",
+      "icon": "💬"
+    },
+    {
+      "id": "dev",
+      "name": "Sala de Desenvolvimento",
+      "url": "/dev",
+      "description": "Discussões sobre código e desenvolvimento",
+      "icon": "👨‍💻"
+    },
+    {
+      "id": "random",
+      "name": "Sala Random",
+      "url": "/random",
+      "description": "Assuntos aleatórios e diversão",
+      "icon": "🎲"
+    },
+    {
+      "id": "suporte",
+      "name": "Sala de Suporte",
+      "url": "/suporte",
+      "description": "Ajuda e suporte técnico",
+      "icon": "🆘"
+    },
+    {
+      "id": "secret",
+      "name": "Sala Secreta",
+      "url": "/secret",
+      "description": "Sala oculta - Acesso apenas por URL",
+      "icon": "🔒",
+      "hidden": true
+    },
+    {
+      "id": "vip",
+      "name": "Sala VIP",
+      "url": "/vip",
+      "description": "Sala VIP - Exclusiva",
+      "icon": "⭐",
+      "hidden": true
+    }
+  ]
+}

@@ -9,6 +9,15 @@ app = Flask(__name__)
 # Garante que o diretório de dados existe
 os.makedirs('data', exist_ok=True)
 
+def load_rooms():
+    """Carrega configuração das salas do arquivo JSON."""
+    try:
+        with open('rooms.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('rooms', [])
+    except FileNotFoundError:
+        return []
+
 def load_messages(filename):
     """Carrega mensagens do arquivo JSON."""
     try:
@@ -23,8 +32,16 @@ def save_messages(messages, filename):
     with open(f'data/{filename}', 'w', encoding='utf-8') as f:
         json.dump({'messages': messages}, f, indent=4, ensure_ascii=False)
 
-# Carrega as mensagens do arquivo ao iniciar o servidor
-messages = load_messages('chat_messages.json')
+# Carrega as salas disponíveis
+rooms = load_rooms()
+
+# Dicionário para armazenar mensagens de cada sala em memória
+room_messages = {}
+for room in rooms:
+    room_id = room['id']
+    room_messages[room_id] = load_messages(f'chat_{room_id}.json')
+
+# Carrega mensagens privadas
 private_messages = load_messages('private_messages.json')
 
 def get_local_ip():
@@ -42,12 +59,22 @@ def get_local_ip():
 @app.route('/login')
 def login():
     """Rota para a página de login."""
-    return render_template('login.html')
+    return render_template('login.html', rooms=rooms)
 
 @app.route('/')
 def home():
-    """Rota principal que renderiza a interface do chat."""
-    return render_template('index.html')
+    """Rota principal que renderiza a interface do chat - Sala Geral."""
+    room = next((r for r in rooms if r['id'] == 'geral'), rooms[0] if rooms else None)
+    return render_template('index.html', room=room, rooms=rooms)
+
+# Cria rotas dinâmicas para cada sala
+@app.route('/<room_id>')
+def room_chat(room_id):
+    """Rota dinâmica para cada sala de chat."""
+    room = next((r for r in rooms if r['id'] == room_id), None)
+    if room:
+        return render_template('index.html', room=room, rooms=rooms)
+    return "Sala não encontrada", 404
 
 @app.route('/send', methods=['POST'])
 def send():
@@ -56,16 +83,24 @@ def send():
     Espera um JSON com:
     - user: nome do usuário
     - message: conteúdo da mensagem
+    - room_id: ID da sala (opcional, padrão: 'geral')
     """
     try:
         data = request.get_json()
+        room_id = data.get('room_id', 'geral')
+        
         message = {
             'user': data['user'],
             'message': data['message'],
             'timestamp': datetime.now().strftime('%H:%M:%S')
         }
-        messages.append(message)
-        save_messages(messages, 'chat_messages.json')
+        
+        # Garante que a sala existe no dicionário
+        if room_id not in room_messages:
+            room_messages[room_id] = []
+        
+        room_messages[room_id].append(message)
+        save_messages(room_messages[room_id], f'chat_{room_id}.json')
         return jsonify({'status': 'success'})
     except Exception as e:
         print(f"Erro ao enviar mensagem: {e}")
@@ -73,9 +108,12 @@ def send():
 
 @app.route('/messages')
 def get_messages():
-    """Retorna todas as mensagens do chat."""
+    """Retorna todas as mensagens de uma sala específica."""
     try:
-        return jsonify(messages)
+        room_id = request.args.get('room_id', 'geral')
+        if room_id not in room_messages:
+            room_messages[room_id] = []
+        return jsonify(room_messages[room_id])
     except Exception as e:
         print(f"Erro ao buscar mensagens: {e}")
         return jsonify([])

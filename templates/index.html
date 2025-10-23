@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Chat</title>
+    <title>{% if room %}{{ room.name }}{% else %}Chat{% endif %}</title>
     <meta charset="UTF-8" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <audio id="notificationSound" preload="auto">
@@ -67,6 +67,23 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        position: relative;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar.minimized {
+        width: 48px;
+      }
+      .sidebar.minimized .sidebar-content {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .sidebar.minimized .room-name {
+        display: none;
+      }
+      .sidebar.minimized .sidebar-header {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        padding: 12px 8px;
       }
       .sidebar-header {
         padding: 8px;
@@ -74,13 +91,64 @@
         color: #cccccc;
         background-color: #2d2d2d;
         border-bottom: 1px solid #3d3d3d;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+      }
+      .sidebar-toggle {
+        background: transparent;
+        border: none;
+        color: #cccccc;
+        cursor: pointer;
+        padding: 4px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+        border-radius: 3px;
+      }
+      .sidebar-toggle:hover {
+        background-color: #3d3d3d;
       }
       .sidebar-content {
-        padding: 8px;
+        padding: 4px;
         flex: 1;
         font-size: 12px;
         color: #cccccc;
         overflow-y: auto;
+        transition: opacity 0.3s ease;
+      }
+      .room-item {
+        padding: 8px 12px;
+        margin: 2px 0;
+        cursor: pointer;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .room-item:hover {
+        background-color: #2d2d2d;
+      }
+      .room-item.active {
+        background-color: #094771;
+        color: #ffffff;
+      }
+      .room-icon {
+        font-size: 16px;
+      }
+      .room-name {
+        font-size: 12px;
+        transition: opacity 0.2s ease;
+      }
+      .sidebar.minimized .room-item {
+        justify-content: center;
+        padding: 8px;
       }
       .content {
         flex: 1;
@@ -100,6 +168,18 @@
         border-right: 1px solid #3d3d3d;
         font-size: 12px;
         color: #cccccc;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hidden-badge {
+        background-color: #5a5a5a;
+        color: #ffffff;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        text-transform: uppercase;
       }
       #chat-container {
         flex: 1;
@@ -380,18 +460,42 @@
       <button>↻ Reiniciar</button>
     </div>
     <div class="main-container">
-      <div class="sidebar">
-        <div class="sidebar-header">ESTRUTURA DO PROJETO</div>
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span>SALAS DE CHAT</span>
+          <button
+            class="sidebar-toggle"
+            onclick="toggleSidebar()"
+            title="Minimizar/Expandir"
+          >
+            <span id="toggle-icon">◀</span>
+          </button>
+        </div>
         <div class="sidebar-content">
-          📁 src<br />
-          ┣ 📁 components<br />
-          ┣ 📁 services<br />
-          ┗ 📁 utils
+          {% if rooms %} {% for r in rooms %} {% if not r.hidden %}
+          <div
+            class="room-item {% if room and room.id == r.id %}active{% endif %}"
+            onclick="location.href='{{ r.url }}'"
+          >
+            <span class="room-icon">{{ r.icon }}</span>
+            <span class="room-name">{{ r.name }}</span>
+          </div>
+          {% endif %} {% endfor %} {% else %}
+          <div style="color: #858585">Nenhuma sala disponível</div>
+          {% endif %}
         </div>
       </div>
       <div class="content">
         <div class="tab-bar">
-          <div class="tab">Console de Depuração</div>
+          <div class="tab">
+            <span>
+              {% if room %} {{ room.icon }} {{ room.name }} {% else %} Console
+              de Depuração {% endif %}
+            </span>
+            {% if room and room.hidden %}
+            <span class="hidden-badge">🔒 Oculta</span>
+            {% endif %}
+          </div>
         </div>
         <div id="chat-container"></div>
         <div class="user-input">
@@ -415,6 +519,49 @@
       let originalTitle = document.title;
       let isBlinking = false;
       let blinkInterval;
+      let hoverTimeout;
+      let isManuallyMinimized = false;
+
+      // Controle da sidebar
+      function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const icon = document.getElementById('toggle-icon');
+
+        sidebar.classList.toggle('minimized');
+        isManuallyMinimized = sidebar.classList.contains('minimized');
+
+        if (isManuallyMinimized) {
+          icon.textContent = '▶';
+        } else {
+          icon.textContent = '◀';
+        }
+      }
+
+      // Hover na sidebar minimizada
+      document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+
+        sidebar.addEventListener('mouseenter', function () {
+          if (sidebar.classList.contains('minimized')) {
+            // Espera 500ms antes de expandir
+            hoverTimeout = setTimeout(() => {
+              sidebar.classList.remove('minimized');
+              document.getElementById('toggle-icon').textContent = '◀';
+            }, 500);
+          }
+        });
+
+        sidebar.addEventListener('mouseleave', function () {
+          // Cancela o timeout se sair antes dos 500ms
+          clearTimeout(hoverTimeout);
+
+          // Se foi minimizada manualmente, volta a minimizar ao sair
+          if (isManuallyMinimized) {
+            sidebar.classList.add('minimized');
+            document.getElementById('toggle-icon').textContent = '▶';
+          }
+        });
+      });
 
       // Função simples para codificar a mensagem durante a transmissão
       function encodeMessage(message) {
@@ -478,6 +625,9 @@
           // Codifica a mensagem para transmissão segura
           const encodedMessage = encodeMessage(message);
 
+          // Pega o room_id da URL atual
+          const roomId = window.location.pathname.substring(1) || 'geral';
+
           fetch('/send', {
             method: 'POST',
             headers: {
@@ -486,6 +636,7 @@
             body: JSON.stringify({
               user: username,
               message: encodedMessage,
+              room_id: roomId,
             }),
           })
             .then((response) => response.json())
@@ -499,7 +650,10 @@
       }
 
       function updateChat() {
-        fetch('/messages')
+        // Pega o room_id da URL atual
+        const roomId = window.location.pathname.substring(1) || 'geral';
+
+        fetch(`/messages?room_id=${roomId}`)
           .then((response) => response.json())
           .then((messages) => {
             if (messages.length > lastMessageCount) {
