@@ -188,47 +188,200 @@
         <h1>Iniciar Nova Sessão de Depuração</h1>
       </div>
       <div class="form-content">
-        <div class="form-group">
-          <label>Nome do Usuário:</label>
-          <input
-            type="text"
-            id="username"
-            placeholder="Digite seu nome de usuário"
-            autofocus
-          />
+        <div id="login-form">
+          <div class="form-group">
+            <label>Nome do Usuário:</label>
+            <input
+              type="text"
+              id="login-username"
+              placeholder="Digite seu nome de usuário"
+              autofocus
+            />
+          </div>
+          <div class="form-group">
+            <label>Senha:</label>
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Digite sua senha"
+            />
+          </div>
+          <div style="margin-top: 12px; font-size: 11px; color: #858585">
+            Não tem uma conta?
+            <a
+              href="#"
+              onclick="showRegister(); return false;"
+              style="color: #007acc; text-decoration: none"
+              >Registre-se</a
+            >
+          </div>
+        </div>
+
+        <div id="register-form" style="display: none">
+          <div class="form-group">
+            <label>Nome do Usuário:</label>
+            <input
+              type="text"
+              id="register-username"
+              placeholder="Escolha um nome de usuário (mín. 3 caracteres)"
+            />
+          </div>
+          <div class="form-group">
+            <label>Senha:</label>
+            <input
+              type="password"
+              id="register-password"
+              placeholder="Escolha uma senha (mín. 4 caracteres)"
+            />
+          </div>
+          <div class="form-group">
+            <label>Confirmar Senha:</label>
+            <input
+              type="password"
+              id="register-confirm"
+              placeholder="Digite a senha novamente"
+            />
+          </div>
+          <div style="margin-top: 12px; font-size: 11px; color: #858585">
+            Já tem uma conta?
+            <a
+              href="#"
+              onclick="showLogin(); return false;"
+              style="color: #007acc; text-decoration: none"
+              >Faça login</a
+            >
+          </div>
         </div>
       </div>
       <div class="button-container">
-        <button onclick="saveUsername()">Iniciar Depuração</button>
+        <button id="action-button" onclick="handleLogin()">Entrar</button>
       </div>
     </div>
-    <div class="status-bar">Pronto</div>
+    <div class="status-bar" id="status-bar">Pronto</div>
 
     <script>
-      // Verifica se já existe um nome salvo
-      const savedUsername = localStorage.getItem('chatUsername');
-      if (savedUsername) {
-        window.location.href = '/';
+      let isRegisterMode = false;
+
+      function showRegister() {
+        isRegisterMode = true;
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'block';
+        document.getElementById('action-button').textContent = 'Registrar';
+        document.getElementById('action-button').onclick = handleRegister;
+        document.querySelector('.header h1').textContent = 'Criar Nova Conta';
+        document.getElementById('register-username').focus();
       }
 
-      function saveUsername() {
-        const username = document.getElementById('username').value.trim();
-        if (username) {
-          localStorage.setItem('chatUsername', username);
-          window.location.href = '/';
-        } else {
-          alert('Por favor, digite seu nome!');
+      function showLogin() {
+        isRegisterMode = false;
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('action-button').textContent = 'Entrar';
+        document.getElementById('action-button').onclick = handleLogin;
+        document.querySelector('.header h1').textContent =
+          'Iniciar Nova Sessão de Depuração';
+        document.getElementById('login-username').focus();
+      }
+
+      function setStatus(message, isError = false) {
+        const statusBar = document.getElementById('status-bar');
+        statusBar.textContent = message;
+        statusBar.style.backgroundColor = isError ? '#d32f2f' : '#007acc';
+
+        if (!isError) {
+          setTimeout(() => {
+            statusBar.textContent = 'Pronto';
+          }, 3000);
         }
       }
 
-      // Permite usar Enter para enviar
-      document
-        .getElementById('username')
-        .addEventListener('keypress', function (e) {
-          if (e.key === 'Enter') {
-            saveUsername();
+      async function handleLogin() {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+
+        if (!username || !password) {
+          setStatus('Preencha todos os campos', true);
+          return;
+        }
+
+        try {
+          const response = await fetch('/authenticate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            localStorage.setItem('chatUsername', username);
+            setStatus('Login realizado! Redirecionando...');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 500);
+          } else {
+            setStatus(data.message, true);
           }
-        });
+        } catch (error) {
+          setStatus('Erro ao conectar com o servidor', true);
+        }
+      }
+
+      async function handleRegister() {
+        const username = document
+          .getElementById('register-username')
+          .value.trim();
+        const password = document
+          .getElementById('register-password')
+          .value.trim();
+        const confirm = document
+          .getElementById('register-confirm')
+          .value.trim();
+
+        if (!username || !password || !confirm) {
+          setStatus('Preencha todos os campos', true);
+          return;
+        }
+
+        if (password !== confirm) {
+          setStatus('As senhas não coincidem', true);
+          return;
+        }
+
+        try {
+          const response = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            setStatus(data.message);
+            setTimeout(() => {
+              showLogin();
+              document.getElementById('login-username').value = username;
+              document.getElementById('login-password').focus();
+            }, 1500);
+          } else {
+            setStatus(data.message, true);
+          }
+        } catch (error) {
+          setStatus('Erro ao conectar com o servidor', true);
+        }
+      }
+
+      // Permite usar Enter
+      document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          if (isRegisterMode) {
+            handleRegister();
+          } else {
+            handleLogin();
+          }
+        }
+      });
     </script>
   </body>
 </html>

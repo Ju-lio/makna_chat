@@ -43,6 +43,12 @@
         border-bottom: 1px solid #3d3d3d;
         display: flex;
         gap: 4px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .toolbar-left {
+        display: flex;
+        gap: 4px;
       }
       .toolbar button {
         background: transparent;
@@ -54,6 +60,20 @@
       }
       .toolbar button:hover {
         background-color: #3d3d3d;
+      }
+      .logout-btn {
+        background-color: #3c3c3c !important;
+        color: #858585 !important;
+        padding: 4px 12px !important;
+        border-radius: 2px;
+        font-size: 11px !important;
+        transition: all 0.2s;
+        border: 1px solid #505050 !important;
+      }
+      .logout-btn:hover {
+        background-color: #505050 !important;
+        color: #cccccc !important;
+        border-color: #606060 !important;
       }
       .main-container {
         display: flex;
@@ -447,7 +467,7 @@
         }
 
         #chat-container {
-          margin-bottom: 45px; /* Espaço para o input fixo */
+          margin-bottom: 8px; /* Espaço para o input fixo */
           padding-bottom: 30px;
           height: calc(100vh - 80px);
           overflow-y: auto;
@@ -515,10 +535,15 @@
       <span>Ajuda</span>
     </div>
     <div class="toolbar">
-      <button>▶ Executar</button>
-      <button>⏸ Pausar</button>
-      <button>⏹ Parar</button>
-      <button>↻ Reiniciar</button>
+      <div class="toolbar-left">
+        <button>▶ Executar</button>
+        <button>⏸ Pausar</button>
+        <button>⏹ Parar</button>
+        <button>↻ Reiniciar</button>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Sair do chat">
+        🚪 Sair
+      </button>
     </div>
     <div class="main-container">
       <div class="sidebar minimized" id="sidebar">
@@ -729,6 +754,14 @@
       // Quando a janela recebe foco, para de piscar
       window.addEventListener('focus', stopTitleBlinking);
 
+      // Função de logout
+      function logout() {
+        if (confirm('Deseja realmente sair do chat?')) {
+          localStorage.removeItem('chatUsername');
+          window.location.href = '/logout';
+        }
+      }
+
       // Verifica se o usuário está logado
       const username = localStorage.getItem('chatUsername');
       if (!username) {
@@ -762,7 +795,14 @@
               room_id: roomId,
             }),
           })
-            .then((response) => response.json())
+            .then((response) => {
+              if (response.status === 401) {
+                localStorage.removeItem('chatUsername');
+                window.location.href = '/login';
+                return { status: 'error' };
+              }
+              return response.json();
+            })
             .then((data) => {
               if (data.status === 'success') {
                 messageInput.value = '';
@@ -777,7 +817,15 @@
         const roomId = window.location.pathname.substring(1) || 'geral';
 
         fetch(`/messages?room_id=${roomId}`)
-          .then((response) => response.json())
+          .then((response) => {
+            if (response.status === 401) {
+              // Sessão expirou, limpa localStorage e redireciona
+              localStorage.removeItem('chatUsername');
+              window.location.href = '/login';
+              return [];
+            }
+            return response.json();
+          })
           .then((messages) => {
             if (messages.length > lastMessageCount) {
               const chatContainer = document.getElementById('chat-container');

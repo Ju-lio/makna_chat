@@ -1,13 +1,54 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import datetime
 import socket
 import json
 import os
+import hashlib
 
 app = Flask(__name__)
+app.secret_key = 'sua_chave_secreta_aqui_mude_isso_em_producao'  # Necessário para sessions
 
 # Garante que o diretório de dados existe
 os.makedirs('data', exist_ok=True)
+
+# Arquivo de usuários
+USERS_FILE = 'data/users.json'
+
+def load_users():
+    """Carrega usuários do arquivo JSON.
+    Retorna dict com estrutura: {
+        'users': [
+            {'id': 1, 'username': 'user1', 'password': 'hash', 'created_at': '...'},
+            ...
+        ],
+        'next_id': 2
+    }
+    """
+    try:
+        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            # Garante que tem a estrutura correta
+            if 'users' not in data:
+                data = {'users': [], 'next_id': 1}
+            return data
+    except FileNotFoundError:
+        return {'users': [], 'next_id': 1}
+
+def save_users(users_data):
+    """Salva usuários no arquivo JSON."""
+    with open(USERS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users_data, f, indent=4, ensure_ascii=False)
+
+def find_user_by_username(users_data, username):
+    """Busca um usuário pelo username."""
+    for user in users_data['users']:
+        if user['username'].lower() == username.lower():
+            return user
+    return None
+
+def hash_password(password):
+    """Cria hash da senha usando SHA256."""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def load_rooms():
     """Carrega configuração das salas do arquivo JSON."""
@@ -59,11 +100,94 @@ def get_local_ip():
 @app.route('/login')
 def login():
     """Rota para a página de login."""
+    # Se já está logado, redireciona para o chat
+    if 'username' in session:
+        return redirect(url_for('home'))
     return render_template('login.html', rooms=rooms)
+
+@app.route('/logout')
+def logout():
+    """Rota para fazer logout."""
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['POST'])
+def register():
+    """Endpoint para registrar novo usuário."""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not username or not password:
+            return jsonify({'success': False, 'message': 'Usuário e senha são obrigatórios'}), 400
+        
+        if len(username) < 3:
+            return jsonify({'success': False, 'message': 'Usuário deve ter no mínimo 3 caracteres'}), 400
+        
+        if len(password) < 4:
+            return jsonify({'success': False, 'message': 'Senha deve ter no mínimo 4 caracteres'}), 400
+        
+        users_data = load_users()
+        
+        # Verifica se o username já existe
+        if find_user_by_username(users_data, username):
+            return jsonify({'success': False, 'message': 'Usuário já existe'}), 400
+        
+        # Cria novo usuário com ID único
+        new_user = {
+            'id': users_data['next_id'],
+            'username': username,
+            'password': hash_password(password),
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        users_data['users'].append(new_user)
+        users_data['next_id'] += 1
+        
+        save_users(users_data)
+        
+        return jsonify({'success': True, 'message': 'Usuário criado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao registrar: {str(e)}'}), 500
+
+@app.route('/authenticate', methods=['POST'])
+def authenticate():
+    """Endpoint para autenticar usuário."""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not username or not password:
+            return jsonify({'success': False, 'message': 'Usuário e senha são obrigatórios'}), 400
+        
+        users_data = load_users()
+        
+        # Busca o usuário pelo username
+        user = find_user_by_username(users_data, username)
+        
+        if not user:
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 401
+        
+        if user['password'] != hash_password(password):
+            return jsonify({'success': False, 'message': 'Senha incorreta'}), 401
+        
+        # Salva o username na sessão (mantém compatibilidade com o resto do código)
+        session['username'] = user['username']
+        session['user_id'] = user['id']
+        
+        return jsonify({'success': True, 'message': 'Login realizado com sucesso!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao autenticar: {str(e)}'}), 500
 
 @app.route('/')
 def home():
     """Rota principal que renderiza a interface do chat - Sala Geral."""
+    # Verifica se o usuário está autenticado
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
     room = next((r for r in rooms if r['id'] == 'geral'), rooms[0] if rooms else None)
     return render_template('index.html', room=room, rooms=rooms)
 
@@ -71,6 +195,10 @@ def home():
 @app.route('/<room_id>')
 def room_chat(room_id):
     """Rota dinâmica para cada sala de chat."""
+    # Verifica se o usuário está autenticado
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
     room = next((r for r in rooms if r['id'] == room_id), None)
     if room:
         return render_template('index.html', room=room, rooms=rooms)
@@ -85,6 +213,10 @@ def send():
     - message: conteúdo da mensagem
     - room_id: ID da sala (opcional, padrão: 'geral')
     """
+    # Verifica autenticação
+    if 'username' not in session:
+        return jsonify({'status': 'error', 'message': 'Não autenticado'}), 401
+    
     try:
         data = request.get_json()
         room_id = data.get('room_id', 'geral')
@@ -112,6 +244,10 @@ typing_users = {}
 @app.route('/messages')
 def get_messages():
     """Retorna todas as mensagens de uma sala específica."""
+    # Verifica autenticação
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
     try:
         room_id = request.args.get('room_id', 'geral')
         if room_id not in room_messages:
@@ -124,6 +260,10 @@ def get_messages():
 @app.route('/typing', methods=['POST'])
 def set_typing():
     """Notifica que um usuário está digitando."""
+    # Verifica autenticação
+    if 'username' not in session:
+        return jsonify({'status': 'error', 'message': 'Não autenticado'}), 401
+    
     try:
         data = request.get_json()
         user = data.get('user')
@@ -146,6 +286,10 @@ def set_typing():
 @app.route('/typing')
 def get_typing():
     """Retorna lista de usuários que estão digitando."""
+    # Verifica autenticação
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
     try:
         room_id = request.args.get('room_id', 'geral')
         current_user = request.args.get('user', '')
@@ -177,6 +321,10 @@ def private_chat():
 @app.route('/send-private', methods=['POST'])
 def send_private():
     """Endpoint para enviar mensagens privadas."""
+    # Verifica autenticação
+    if 'username' not in session:
+        return jsonify({'status': 'error', 'message': 'Não autenticado'}), 401
+    
     try:
         data = request.get_json()
         message = {
@@ -194,6 +342,10 @@ def send_private():
 @app.route('/messages-private')
 def get_private_messages():
     """Retorna todas as mensagens do chat privado."""
+    # Verifica autenticação
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
     try:
         return jsonify(private_messages)
     except Exception as e:
