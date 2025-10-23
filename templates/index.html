@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HPro Chat</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <style>
+      html,
+      body {
+        font-family: Segoe UI, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #252526;
+        color: #ffffff;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .menubar {
+        background-color: #333333;
+        padding: 2px 8px;
+        border-bottom: 1px solid #3d3d3d;
+        font-size: 12px;
+      }
+      .menubar span {
+        color: #cccccc;
+        padding: 4px 8px;
+        cursor: default;
+      }
+      .menubar span:hover {
+        background-color: #3d3d3d;
+      }
+      .toolbar {
+        background-color: #2d2d2d;
+        padding: 4px 8px;
+        border-bottom: 1px solid #3d3d3d;
+        display: flex;
+        gap: 4px;
+      }
+      .toolbar button {
+        background: transparent;
+        border: none;
+        color: #cccccc;
+        padding: 2px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .toolbar button:hover {
+        background-color: #3d3d3d;
+      }
+      .main-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      .sidebar {
+        width: 250px;
+        background-color: #252526;
+        border-right: 1px solid #3d3d3d;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .sidebar-header {
+        padding: 8px;
+        font-size: 11px;
+        color: #cccccc;
+        background-color: #2d2d2d;
+        border-bottom: 1px solid #3d3d3d;
+      }
+      .sidebar-content {
+        padding: 8px;
+        flex: 1;
+        font-size: 12px;
+        color: #cccccc;
+        overflow-y: auto;
+      }
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .tab-bar {
+        background-color: #2d2d2d;
+        border-bottom: 1px solid #3d3d3d;
+        display: flex;
+        padding: 0 4px;
+      }
+      .tab {
+        padding: 6px 16px;
+        background-color: #1e1e1e;
+        border-right: 1px solid #3d3d3d;
+        font-size: 12px;
+        color: #cccccc;
+      }
+      #chat-container {
+        flex: 1;
+        overflow-y: auto;
+        background-color: #1e1e1e;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+        padding: 0;
+      }
+      .message {
+        padding: 4px 8px;
+        border-bottom: 1px solid #2d2d2d;
+        color: #303030;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+      }
+      .message:hover {
+        background-color: #2d2d2d;
+        color: #d4d4d4;
+      }
+      .message-number {
+        color: #303030;
+        min-width: 40px;
+        text-align: right;
+        padding-right: 8px;
+        user-select: none;
+      }
+      .message:hover .message-number {
+        color: #858585;
+      }
+      .message-content {
+        flex: 1;
+        white-space: pre-wrap;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .status-bar {
+        background-color: #007acc;
+        padding: 2px 8px;
+        font-size: 12px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+      }
+      .user-input {
+        background-color: #1e1e1e;
+        padding: 8px;
+        display: flex;
+        gap: 8px;
+        border-top: 1px solid #3d3d3d;
+      }
+      #message-input {
+        flex: 1;
+        padding: 4px 8px;
+        background-color: #3c3c3c;
+        border: 1px solid #3d3d3d;
+        color: #d4d4d4;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+      }
+      #message-input:focus {
+        outline: none;
+        border-color: #007acc;
+      }
+      button.send {
+        padding: 4px 12px;
+        background-color: transparent;
+        color: #cccccc;
+        border: 1px solid #3d3d3d;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      button.send:hover {
+        background-color: #2d2d2d;
+      }
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 14px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e1e1e;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #424242;
+        border: 3px solid #1e1e1e;
+        border-radius: 7px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #4f4f4f;
+      }
+      .username {
+        color: #303030;
+        transition: color 0.3s ease;
+      }
+      .message:hover .username {
+        color: #4ec9b0;
+      }
+      .timestamp {
+        color: #303030;
+        transition: color 0.3s ease;
+      }
+      .message:hover .timestamp {
+        color: #858585;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="menubar">
+      <span>Arquivo</span>
+      <span>Editar</span>
+      <span>Visualizar</span>
+      <span>Projeto</span>
+      <span>Depurar</span>
+      <span>Ferramentas</span>
+      <span>Ajuda</span>
+    </div>
+    <div class="toolbar">
+      <button>▶ Executar</button>
+      <button>⏸ Pausar</button>
+      <button>⏹ Parar</button>
+      <button>↻ Reiniciar</button>
+    </div>
+    <div class="main-container">
+      <div class="sidebar">
+        <div class="sidebar-header">ESTRUTURA DO PROJETO</div>
+        <div class="sidebar-content">
+          📁 src<br />
+          ┣ 📁 components<br />
+          ┣ 📁 services<br />
+          ┗ 📁 utils
+        </div>
+      </div>
+      <div class="content">
+        <div class="tab-bar">
+          <div class="tab">Console de Depuração</div>
+        </div>
+        <div id="chat-container"></div>
+        <div class="user-input">
+          <input
+            type="text"
+            id="message-input"
+            placeholder="Digite um comando ou mensagem..."
+          />
+          <button class="send" onclick="sendMessage()">Enviar</button>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div>Conectado</div>
+      <div>Terminal: 1</div>
+      <div id="current-user"></div>
+    </div>
+
+    <script>
+      let lastMessageCount = 0;
+
+      // Função para codificar a mensagem durante a transmissão
+      function encodeMessage(message) {
+        return btoa(unescape(encodeURIComponent(message))); // Codifica para base64
+      }
+
+      // Função para decodificar a mensagem recebida
+      function decodeMessage(encodedMessage) {
+        try {
+          return decodeURIComponent(escape(atob(encodedMessage))); // Decodifica do base64
+        } catch (e) {
+          console.error('Erro ao decodificar:', e);
+          return encodedMessage;
+        }
+      }
+
+      // Verifica se o usuário está logado
+      const username = localStorage.getItem('chatUsername');
+      if (!username) {
+        window.location.href = '/login';
+      }
+
+      // Atualiza o nome do usuário na barra de status
+      document.getElementById(
+        'current-user',
+      ).textContent = `Usuário: ${username}`;
+
+      function sendMessage() {
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value.trim();
+
+        if (message) {
+          fetch('/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user: username,
+              message: encodeMessage(message),
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.status === 'success') {
+                messageInput.value = '';
+              }
+            })
+            .catch((error) => console.error('Erro:', error));
+        }
+      }
+
+      function updateChat() {
+        fetch('/messages')
+          .then((response) => response.json())
+          .then((messages) => {
+            if (messages.length > lastMessageCount) {
+              const chatContainer = document.getElementById('chat-container');
+              chatContainer.innerHTML = '';
+              messages.forEach((msg, index) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `
+                    <div class="message-number">${index + 1}</div>
+                    <div class="message-content">
+                        <span class="username">${msg.user}</span>
+                        <span class="timestamp">[${msg.timestamp}]:</span>
+                        <span>${decodeMessage(msg.message)}</span>
+                    </div>`;
+                chatContainer.appendChild(messageDiv);
+              });
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+              lastMessageCount = messages.length;
+            }
+          });
+      }
+
+      // Atualiza o chat a cada segundo
+      setInterval(updateChat, 1000);
+
+      // Permite enviar mensagem com Enter
+      document
+        .getElementById('message-input')
+        .addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login - HPro Chat</title>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: Segoe UI, Arial, sans-serif;
+        background-color: #252526;
+        color: #ffffff;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+      }
+      .menubar {
+        background-color: #333333;
+        padding: 2px 8px;
+        border-bottom: 1px solid #3d3d3d;
+        font-size: 12px;
+      }
+      .menubar span {
+        color: #cccccc;
+        padding: 4px 8px;
+        cursor: default;
+      }
+      .login-container {
+        width: 400px;
+        margin: 100px auto;
+        background-color: #2d2d2d;
+        border: 1px solid #3d3d3d;
+      }
+      .header {
+        background-color: #333333;
+        padding: 8px 12px;
+        border-bottom: 1px solid #3d3d3d;
+        display: flex;
+        align-items: center;
+      }
+      .header h1 {
+        margin: 0;
+        color: #cccccc;
+        font-size: 12px;
+        font-weight: normal;
+      }
+      .form-content {
+        padding: 20px;
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: #cccccc;
+      }
+      input {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #3d3d3d;
+        background-color: #3c3c3c;
+        color: #ffffff;
+        box-sizing: border-box;
+        font-size: 12px;
+        font-family: Consolas, monospace;
+      }
+      input:focus {
+        outline: none;
+        border-color: #007acc;
+      }
+      .button-container {
+        display: flex;
+        justify-content: flex-end;
+        padding: 16px;
+        background-color: #333333;
+        border-top: 1px solid #3d3d3d;
+      }
+      button {
+        padding: 6px 16px;
+        background-color: #0e639c;
+        color: white;
+        border: 1px solid #0e639c;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      button:hover {
+        background-color: #1177bb;
+      }
+      .status-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #007acc;
+        padding: 2px 8px;
+        font-size: 12px;
+        color: white;
+      }
+      ::-webkit-scrollbar {
+        width: 14px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e1e1e;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #424242;
+        border: 3px solid #1e1e1e;
+        border-radius: 7px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #4f4f4f;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="menubar">
+      <span>Arquivo</span>
+      <span>Editar</span>
+      <span>Projeto</span>
+      <span>Ferramentas</span>
+      <span>Ajuda</span>
+    </div>
+    <div class="login-container">
+      <div class="header">
+        <h1>Iniciar Nova Sessão de Depuração</h1>
+      </div>
+      <div class="form-content">
+        <div class="form-group">
+          <label>Nome do Usuário:</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="Digite seu nome de usuário"
+            autofocus
+          />
+        </div>
+      </div>
+      <div class="button-container">
+        <button onclick="saveUsername()">Iniciar Depuração</button>
+      </div>
+    </div>
+    <div class="status-bar">Pronto</div>
+
+    <script>
+      // Verifica se já existe um nome salvo
+      const savedUsername = localStorage.getItem('chatUsername');
+      if (savedUsername) {
+        window.location.href = '/';
+      }
+
+      function saveUsername() {
+        const username = document.getElementById('username').value.trim();
+        if (username) {
+          localStorage.setItem('chatUsername', username);
+          window.location.href = '/';
+        } else {
+          alert('Por favor, digite seu nome!');
+        }
+      }
+
+      // Permite usar Enter para enviar
+      document
+        .getElementById('username')
+        .addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            saveUsername();
+          }
+        });
+    </script>
+  </body>
+</html>
