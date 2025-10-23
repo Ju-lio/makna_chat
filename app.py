@@ -1,10 +1,31 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 import socket
+import json
+import os
 
 app = Flask(__name__)
-messages = []
-private_messages = []  # Lista separada para mensagens privadas
+
+# Garante que o diretório de dados existe
+os.makedirs('data', exist_ok=True)
+
+def load_messages(filename):
+    """Carrega mensagens do arquivo JSON."""
+    try:
+        with open(f'data/{filename}', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('messages', [])
+    except FileNotFoundError:
+        return []
+
+def save_messages(messages, filename):
+    """Salva mensagens no arquivo JSON."""
+    with open(f'data/{filename}', 'w', encoding='utf-8') as f:
+        json.dump({'messages': messages}, f, indent=4, ensure_ascii=False)
+
+# Carrega as mensagens do arquivo ao iniciar o servidor
+messages = load_messages('chat_messages.json')
+private_messages = load_messages('private_messages.json')
 
 def get_local_ip():
     """Obtém o IP local da máquina para facilitar o acesso em rede."""
@@ -44,6 +65,7 @@ def send():
             'timestamp': datetime.now().strftime('%H:%M:%S')
         }
         messages.append(message)
+        save_messages(messages, 'chat_messages.json')
         return jsonify({'status': 'success'})
     except Exception as e:
         print(f"Erro ao enviar mensagem: {e}")
@@ -74,6 +96,7 @@ def send_private():
             'timestamp': datetime.now().strftime('%H:%M:%S')
         }
         private_messages.append(message)
+        save_messages(private_messages, 'private_messages.json')
         return jsonify({'status': 'success'})
     except Exception as e:
         print(f"Erro ao enviar mensagem privada: {e}")
