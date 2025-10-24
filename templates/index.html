@@ -255,6 +255,9 @@
         background-color: #2d2d2d;
         color: #d4d4d4;
       }
+      .message.new-message {
+        opacity: 1;
+      }
       .message.new-message .message-content span {
         animation: glowText 0.8s ease-out;
       }
@@ -297,11 +300,19 @@
         margin-top: 4px;
         cursor: pointer;
         border: 1px solid #3d3d3d;
-        transition: all 0.3s ease;
+        transition: all 0.3s ease, opacity 0.5s ease;
+        opacity: 0.3;
       }
       .chat-image:hover {
         border-color: #007acc;
         transform: scale(1.02);
+        opacity: 1;
+      }
+      .chat-image.just-sent {
+        opacity: 1;
+      }
+      .message:hover .chat-image {
+        opacity: 0.8;
       }
       .image-modal {
         display: none;
@@ -336,6 +347,238 @@
       .image-modal .close-modal:hover {
         color: #007acc;
       }
+
+      /* Preview de imagem antes de enviar */
+      .image-preview-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+      }
+      .image-preview-container.active {
+        display: flex;
+      }
+      .preview-content {
+        background-color: #1e1e1e;
+        border: 2px solid #007acc;
+        border-radius: 8px;
+        padding: 20px;
+        max-width: 600px;
+        width: 90%;
+        box-shadow: 0 0 30px rgba(0, 122, 204, 0.5);
+      }
+      .preview-image {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .preview-input-group {
+        margin-bottom: 15px;
+      }
+      .preview-input-group label {
+        display: block;
+        color: #cccccc;
+        margin-bottom: 5px;
+        font-size: 12px;
+        font-family: 'Segoe UI', sans-serif;
+      }
+      .preview-input-group input[type='text'] {
+        width: 100%;
+        padding: 8px;
+        background-color: #252526;
+        border: 1px solid #3c3c3c;
+        color: #ffffff;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      .preview-input-group input[type='text']:focus {
+        outline: none;
+        border-color: #007acc;
+      }
+      .preview-checkbox-group {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+      }
+      .preview-checkbox-group input[type='checkbox'] {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+      .preview-checkbox-group label {
+        color: #cccccc;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: 'Segoe UI', sans-serif;
+      }
+      .preview-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .preview-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+      .preview-btn-send {
+        background-color: #007acc;
+        color: white;
+      }
+      .preview-btn-send:hover {
+        background-color: #005a9e;
+      }
+      .preview-btn-cancel {
+        background-color: #3c3c3c;
+        color: #cccccc;
+      }
+      .preview-btn-cancel:hover {
+        background-color: #505050;
+      }
+
+      /* Botão de galeria */
+      .gallery-btn {
+        background-color: #5a5a5a;
+        color: #ffffff;
+        border: 1px solid #3c3c3c;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: Consolas, monospace;
+        border-radius: 4px;
+        transition: all 0.2s;
+        margin-left: 5px;
+      }
+      .gallery-btn:hover {
+        background-color: #007acc;
+        border-color: #007acc;
+      }
+
+      /* Modal de galeria */
+      .gallery-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        display: none;
+        z-index: 2500;
+      }
+      .gallery-modal.active {
+        display: block;
+      }
+      .gallery-content {
+        background-color: #1e1e1e;
+        border: 2px solid #007acc;
+        border-radius: 8px;
+        margin: 50px auto;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        padding: 20px;
+      }
+      .gallery-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .gallery-header h3 {
+        color: #ffffff;
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+      }
+      .gallery-close {
+        color: #ffffff;
+        font-size: 28px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .gallery-close:hover {
+        color: #007acc;
+      }
+      .gallery-search {
+        margin-bottom: 15px;
+      }
+      .gallery-search input {
+        width: 100%;
+        padding: 8px;
+        background-color: #252526;
+        border: 1px solid #3c3c3c;
+        color: #ffffff;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      .gallery-search input:focus {
+        outline: none;
+        border-color: #007acc;
+      }
+      .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+      }
+      .gallery-item {
+        position: relative;
+        cursor: pointer;
+        border: 2px solid #3c3c3c;
+        border-radius: 4px;
+        overflow: hidden;
+        transition: all 0.2s;
+      }
+      .gallery-item:hover {
+        border-color: #007acc;
+        transform: scale(1.05);
+      }
+      .gallery-item img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        display: block;
+      }
+      .gallery-item-tags {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #ffffff;
+        font-size: 10px;
+        padding: 4px;
+        font-family: Consolas, monospace;
+      }
+      .gallery-item-private {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: #d13438;
+        color: white;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Segoe UI', sans-serif;
+      }
+
       .status-bar {
         background-color: #007acc;
         padding: 2px 8px;
@@ -728,6 +971,9 @@
               id="message-input"
               placeholder="Digite uma mensagem..."
             />
+            <button class="gallery-btn" onclick="openGallery(false)">
+              🖼️ Memes
+            </button>
             <button class="send" onclick="sendMessage()">Enviar</button>
           </div>
         </div>
@@ -985,10 +1231,10 @@
                 // Adiciona animação apenas para mensagens novas
                 if (index >= lastMessageCount) {
                   messageDiv.classList.add('new-message');
-                  // Remove a classe após a animação terminar
+                  // Remove a classe após 3 segundos
                   setTimeout(() => {
                     messageDiv.classList.remove('new-message');
-                  }, 800);
+                  }, 3000);
                 }
 
                 messageDiv.innerHTML = `
@@ -1090,6 +1336,7 @@
               placeholder="Mensagem para ${username}..."
               onkeypress="if(event.key==='Enter') sendPrivateMessage('${username}')"
             />
+            <button class="gallery-btn" onclick="openGallery(true)">🖼️ Memes</button>
             <button class="send" onclick="sendPrivateMessage('${username}')">Enviar</button>
           </div>
         `;
@@ -1174,7 +1421,7 @@
                 msgDiv.classList.add('new-message');
                 setTimeout(() => {
                   msgDiv.classList.remove('new-message');
-                }, 800);
+                }, 3000);
               }
 
               const isFromCurrentUser = msg.from === currentUser;
@@ -1235,6 +1482,9 @@
       // ========== FIM DO SISTEMA DE CHAT PRIVADO ==========
 
       // ========== SISTEMA DE UPLOAD DE IMAGENS ==========
+      let pendingImageData = null;
+      let pendingImageContext = null;
+
       function handlePaste(e, isPrivateChat = false, targetUser = null) {
         const items = e.clipboardData?.items;
         if (!items) return;
@@ -1248,12 +1498,18 @@
             reader.onload = function (event) {
               const imageData = event.target.result;
 
-              // Determina se é chat privado ou público
-              const isPrivate = isPrivateChat || activeTab !== 'room';
-              const target = targetUser || (isPrivate ? activeTab : null);
-              const roomId = window.location.pathname.substring(1) || 'geral';
+              // Armazena contexto do envio
+              pendingImageData = imageData;
+              pendingImageContext = {
+                isPrivate: isPrivateChat || activeTab !== 'room',
+                target:
+                  targetUser ||
+                  (isPrivateChat || activeTab !== 'room' ? activeTab : null),
+                roomId: window.location.pathname.substring(1) || 'geral',
+              };
 
-              uploadImage(imageData, isPrivate, target || roomId);
+              // Mostra preview
+              showImagePreview(imageData);
             };
 
             reader.readAsDataURL(blob);
@@ -1262,12 +1518,62 @@
         }
       }
 
-      function uploadImage(imageData, isPrivate, target) {
+      function showImagePreview(imageData) {
+        const previewContainer = document.getElementById(
+          'image-preview-container',
+        );
+        const previewImage = document.getElementById('preview-image');
+        const tagsInput = document.getElementById('preview-tags');
+        const privateCheckbox = document.getElementById('preview-private');
+
+        previewImage.src = imageData;
+        tagsInput.value = '';
+        privateCheckbox.checked = false;
+
+        previewContainer.classList.add('active');
+      }
+
+      function cancelImagePreview() {
+        const previewContainer = document.getElementById(
+          'image-preview-container',
+        );
+        previewContainer.classList.remove('active');
+        pendingImageData = null;
+        pendingImageContext = null;
+      }
+
+      function confirmImageSend() {
+        if (!pendingImageData || !pendingImageContext) return;
+
+        const tags = document.getElementById('preview-tags').value;
+        const isPrivateGallery =
+          document.getElementById('preview-private').checked;
+
+        uploadImage(
+          pendingImageData,
+          pendingImageContext.isPrivate,
+          pendingImageContext.target || pendingImageContext.roomId,
+          tags,
+          isPrivateGallery,
+        );
+
+        cancelImagePreview();
+      }
+
+      function uploadImage(
+        imageData,
+        isPrivate,
+        target,
+        tags = '',
+        isPrivateGallery = false,
+      ) {
         const payload = {
           image_data: imageData,
           is_private: isPrivate,
           room_id: isPrivate ? null : target,
           target_user: isPrivate ? target : null,
+          tags: tags,
+          is_private_gallery: isPrivateGallery,
         };
 
         fetch('/upload-image', {
@@ -1333,6 +1639,201 @@
             }
           });
       });
+
+      // ========== SISTEMA DE GALERIA DE MEMES ==========
+      function openGallery(isPrivate = false) {
+        console.log('Abrindo galeria, isPrivate:', isPrivate);
+        const modal = document.getElementById('gallery-modal');
+        modal.classList.add('active');
+        loadGallery();
+      }
+
+      function closeGallery() {
+        const modal = document.getElementById('gallery-modal');
+        modal.classList.remove('active');
+      }
+
+      function loadGallery() {
+        const searchInput = document.getElementById('gallery-search-input');
+        const tags = searchInput ? searchInput.value : '';
+        const isPrivate = activeTab !== 'room';
+        const target = isPrivate ? activeTab : null;
+        const roomId = window.location.pathname.substring(1) || 'geral';
+
+        let url = `/gallery?tags=${encodeURIComponent(tags)}`;
+        url += `&room_id=${roomId}`;
+        url += `&is_private=${isPrivate}`;
+        if (target) {
+          url += `&target_user=${encodeURIComponent(target)}`;
+        }
+
+        console.log('Carregando galeria de:', url);
+
+        fetch(url)
+          .then((response) => {
+            console.log('Resposta da galeria:', response.status);
+            return response.json();
+          })
+          .then((data) => {
+            console.log('Dados da galeria:', data);
+            if (data.status === 'success') {
+              displayGalleryMemes(data.memes);
+            } else {
+              console.error('Erro no status da galeria:', data);
+            }
+          })
+          .catch((error) => {
+            console.error('Erro ao carregar galeria:', error);
+            alert('Erro ao carregar galeria de memes');
+          });
+      }
+
+      function searchGallery() {
+        loadGallery();
+      }
+
+      function displayGalleryMemes(memes) {
+        console.log('Exibindo memes:', memes.length, 'itens');
+        const grid = document.getElementById('gallery-grid');
+
+        if (!grid) {
+          console.error('Grid da galeria não encontrado!');
+          return;
+        }
+
+        grid.innerHTML = '';
+
+        if (memes.length === 0) {
+          grid.innerHTML =
+            '<p style="color: #cccccc; text-align: center; padding: 20px; grid-column: 1 / -1;">Nenhum meme encontrado. Cole uma imagem para adicionar à galeria!</p>';
+          return;
+        }
+
+        memes.forEach((meme) => {
+          const item = document.createElement('div');
+          item.className = 'gallery-item';
+          item.onclick = () => {
+            console.log('Meme clicado:', meme.filename);
+            selectMemeFromGallery(meme.filename);
+          };
+
+          const img = document.createElement('img');
+          img.src = `/uploads/${meme.filename}`;
+          img.alt = 'Meme';
+          img.onerror = function () {
+            console.error('Erro ao carregar imagem:', meme.filename);
+          };
+
+          item.appendChild(img);
+
+          if (meme.is_private) {
+            const privateLabel = document.createElement('div');
+            privateLabel.className = 'gallery-item-private';
+            privateLabel.textContent = '🔒';
+            item.appendChild(privateLabel);
+          }
+
+          if (meme.tags && meme.tags.length > 0) {
+            const tagsDiv = document.createElement('div');
+            tagsDiv.className = 'gallery-item-tags';
+            tagsDiv.textContent = meme.tags.join(', ');
+            item.appendChild(tagsDiv);
+          }
+
+          grid.appendChild(item);
+        });
+      }
+
+      function selectMemeFromGallery(filename) {
+        console.log('Selecionando meme:', filename);
+        const isPrivate = activeTab !== 'room';
+        const target = isPrivate ? activeTab : null;
+        const roomId = window.location.pathname.substring(1) || 'geral';
+        const currentUsername = localStorage.getItem('chatUsername');
+
+        console.log('Contexto:', {
+          isPrivate,
+          target,
+          roomId,
+          user: currentUsername,
+        });
+
+        // Envia mensagem com a imagem da galeria
+        const message = {
+          user: currentUsername,
+          message: `[IMAGE:${filename}]`,
+          timestamp: new Date().toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+          type: 'image',
+        };
+
+        if (isPrivate && target) {
+          console.log('Enviando para chat privado:', target);
+          // Envia como mensagem privada
+          fetch('/send-private', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to_user: target,
+              message: message.message,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log('Resposta send-private:', data);
+              if (data.status === 'success') {
+                loadPrivateMessages(target);
+                closeGallery();
+              } else {
+                console.error('Erro ao enviar mensagem privada:', data);
+                alert('Erro ao enviar meme');
+              }
+            })
+            .catch((error) => {
+              console.error('Erro na requisição privada:', error);
+              alert('Erro ao enviar meme');
+            });
+        } else {
+          console.log('Enviando para sala pública:', roomId);
+          // Envia para sala pública
+          fetch('/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user: currentUsername,
+              message: message.message,
+              room_id: roomId,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log('Resposta send:', data);
+              if (data.status === 'success') {
+                updateChat();
+                closeGallery();
+              } else {
+                console.error('Erro ao enviar mensagem pública:', data);
+                alert(
+                  'Erro ao enviar meme: ' +
+                    (data.message || 'Erro desconhecido'),
+                );
+              }
+            })
+            .catch((error) => {
+              console.error('Erro na requisição pública:', error);
+              alert('Erro ao enviar meme');
+            });
+        }
+      }
+      // ========== FIM DO SISTEMA DE GALERIA ==========
+
       // ========== FIM DO SISTEMA DE UPLOAD DE IMAGENS ==========
 
       // Atualiza o chat a cada 2 segundos (reduzido para economizar requisições)
@@ -1377,6 +1878,62 @@
         alt="Imagem ampliada"
         onclick="event.stopPropagation()"
       />
+    </div>
+
+    <!-- Preview de imagem antes de enviar -->
+    <div class="image-preview-container" id="image-preview-container">
+      <div class="preview-content">
+        <img id="preview-image" class="preview-image" src="" alt="Preview" />
+        <div class="preview-input-group">
+          <label for="preview-tags"
+            >Tags do meme (separadas por vírgula):</label
+          >
+          <input
+            type="text"
+            id="preview-tags"
+            placeholder="engraçado, reação, gaming..."
+          />
+        </div>
+        <div class="preview-checkbox-group">
+          <input type="checkbox" id="preview-private" />
+          <label for="preview-private">🔒 Private (apenas neste chat)</label>
+        </div>
+        <div class="preview-buttons">
+          <button
+            class="preview-btn preview-btn-cancel"
+            onclick="cancelImagePreview()"
+          >
+            Cancelar
+          </button>
+          <button
+            class="preview-btn preview-btn-send"
+            onclick="confirmImageSend()"
+          >
+            Enviar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de galeria de memes -->
+    <div class="gallery-modal" id="gallery-modal">
+      <div class="gallery-content">
+        <div class="gallery-header">
+          <h3>🖼️ Galeria de Memes</h3>
+          <span class="gallery-close" onclick="closeGallery()">&times;</span>
+        </div>
+        <div class="gallery-search">
+          <input
+            type="text"
+            id="gallery-search-input"
+            placeholder="Buscar por tags..."
+            onkeyup="searchGallery()"
+          />
+        </div>
+        <div class="gallery-grid" id="gallery-grid">
+          <!-- Memes serão carregados aqui -->
+        </div>
+      </div>
     </div>
   </body>
 </html>

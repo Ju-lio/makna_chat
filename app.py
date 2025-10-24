@@ -19,8 +19,9 @@ UPLOAD_FOLDER = 'data/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
-# Arquivo de usuários
+# Arquivo de usuários e galeria
 USERS_FILE = 'data/users.json'
+GALLERY_FILE = 'data/gallery.json'
 
 def load_users():
     """Carrega usuários do arquivo JSON.
@@ -57,6 +58,20 @@ def find_user_by_username(users_data, username):
 def hash_password(password):
     """Cria hash da senha usando SHA256."""
     return hashlib.sha256(password.encode()).hexdigest()
+
+def load_gallery():
+    """Carrega galeria de memes do arquivo JSON."""
+    try:
+        with open(GALLERY_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('memes', [])
+    except FileNotFoundError:
+        return []
+
+def save_gallery(memes):
+    """Salva galeria de memes no arquivo JSON."""
+    with open(GALLERY_FILE, 'w', encoding='utf-8') as f:
+        json.dump({'memes': memes}, f, indent=4, ensure_ascii=False)
 
 def load_rooms():
     """Carrega configuração das salas do arquivo JSON."""
@@ -412,8 +427,10 @@ def upload_image():
             # Paste de clipboard (base64)
             image_data = request.json['image_data']
             room_id = request.json.get('room_id', 'geral')
-            is_private = request.json.get('is_private', False)
+            is_private_msg = request.json.get('is_private', False)
             target_user = request.json.get('target_user', None)
+            tags = request.json.get('tags', '')  # Tags do meme
+            is_private_gallery = request.json.get('is_private_gallery', False)  # Private na galeria
             
             # Remove o prefixo data:image/...;base64,
             if 'base64,' in image_data:
@@ -429,6 +446,20 @@ def upload_image():
             with open(filepath, 'wb') as f:
                 f.write(image_bytes)
             
+            # Adiciona à galeria
+            gallery = load_gallery()
+            meme_entry = {
+                'filename': filename,
+                'uploaded_by': session['username'],
+                'uploaded_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'tags': [tag.strip().lower() for tag in tags.split(',') if tag.strip()],
+                'is_private': is_private_gallery,
+                'room_id': room_id if not is_private_msg else None,
+                'target_user': target_user if is_private_msg else None
+            }
+            gallery.append(meme_entry)
+            save_gallery(gallery)
+            
             # Cria mensagem com imagem
             message = {
                 'user': session['username'],
@@ -438,7 +469,7 @@ def upload_image():
             }
             
             # Salva mensagem
-            if is_private and target_user:
+            if is_private_msg and target_user:
                 # Mensagem privada
                 current_user = session['username']
                 users_sorted = sorted([current_user.lower(), target_user.lower()])
@@ -478,6 +509,47 @@ def upload_image():
 def uploaded_file(filename):
     """Serve arquivos de upload."""
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+@app.route('/gallery', methods=['GET'])
+def get_gallery():
+    """Retorna memes da galeria filtrados por tags e privacidade."""
+    if 'username' not in session:
+        return jsonify({'status': 'error', 'message': 'Não autenticado'}), 401
+    
+    search_tags = request.args.get('tags', '').lower().strip()
+    current_user = session['username']
+    room_id = request.args.get('room_id', 'geral')
+    is_private_chat = request.args.get('is_private', 'false') == 'true'
+    target_user = request.args.get('target_user', '')
+    
+    gallery = load_gallery()
+    filtered_memes = []
+    
+    for meme in gallery:
+        # Verifica privacidade
+        if meme.get('is_private', False):
+            # Meme privado - só mostra se foi upado pelo usuário atual ou na conversa atual
+            if meme.get('uploaded_by') != current_user:
+                # Se não foi upado pelo user, verifica se está na conversa privada correta
+                if is_private_chat:
+                    meme_target = meme.get('target_user', '')
+                    if not (meme_target == target_user or meme_target == current_user):
+                        continue
+                else:
+                    continue
+        
+        # Filtra por tags se fornecido
+        if search_tags:
+            search_list = [tag.strip() for tag in search_tags.split(',') if tag.strip()]
+            meme_tags = meme.get('tags', [])
+            
+            # Verifica se alguma tag bate
+            if not any(search_tag in meme_tags for search_tag in search_list):
+                continue
+        
+        filtered_memes.append(meme)
+    
+    return jsonify({'status': 'success', 'memes': filtered_memes})
 
 @app.route('/sewage')
 def sewage():
