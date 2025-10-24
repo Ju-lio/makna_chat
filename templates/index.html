@@ -288,6 +288,53 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
+      }
+      .chat-image {
+        max-width: 300px;
+        max-height: 400px;
+        border-radius: 4px;
+        margin-top: 4px;
+        cursor: pointer;
+        border: 1px solid #3d3d3d;
+        transition: all 0.3s ease;
+      }
+      .chat-image:hover {
+        border-color: #007acc;
+        transform: scale(1.02);
+      }
+      .image-modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        justify-content: center;
+        align-items: center;
+      }
+      .image-modal.active {
+        display: flex;
+      }
+      .image-modal img {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 8px;
+      }
+      .image-modal .close-modal {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        color: #ffffff;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 2001;
+      }
+      .image-modal .close-modal:hover {
+        color: #007acc;
       }
       .status-bar {
         background-color: #007acc;
@@ -951,7 +998,7 @@
                           msg.user
                         }')">${msg.user}</span>
                         <span class="timestamp">[${msg.timestamp}]:</span>
-                        <span>${decodeMessage(msg.message)}</span>
+                        <span>${renderMessage(msg)}</span>
                     </div>`;
                 chatContainer.appendChild(messageDiv);
               });
@@ -1054,6 +1101,16 @@
           lastCount: 0,
         };
 
+        // Adiciona listener de paste no input privado
+        const privateInput = document.getElementById(
+          `private-input-${username}`,
+        );
+        if (privateInput) {
+          privateInput.addEventListener('paste', (e) =>
+            handlePaste(e, true, username),
+          );
+        }
+
         // Carrega mensagens e ativa a aba
         loadPrivateMessages(username);
         switchTab(username);
@@ -1127,7 +1184,7 @@
                 <div class="message-content">
                   <span class="username">${msg.from}</span>
                   <span class="timestamp">[${msg.timestamp}]:</span>
-                  <span>${msg.message}</span>
+                  <span>${renderMessage(msg)}</span>
                 </div>
               `;
 
@@ -1177,6 +1234,107 @@
       }
       // ========== FIM DO SISTEMA DE CHAT PRIVADO ==========
 
+      // ========== SISTEMA DE UPLOAD DE IMAGENS ==========
+      function handlePaste(e, isPrivateChat = false, targetUser = null) {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let item of items) {
+          if (item.type.indexOf('image') !== -1) {
+            e.preventDefault();
+            const blob = item.getAsFile();
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+              const imageData = event.target.result;
+
+              // Determina se é chat privado ou público
+              const isPrivate = isPrivateChat || activeTab !== 'room';
+              const target = targetUser || (isPrivate ? activeTab : null);
+              const roomId = window.location.pathname.substring(1) || 'geral';
+
+              uploadImage(imageData, isPrivate, target || roomId);
+            };
+
+            reader.readAsDataURL(blob);
+            break;
+          }
+        }
+      }
+
+      function uploadImage(imageData, isPrivate, target) {
+        const payload = {
+          image_data: imageData,
+          is_private: isPrivate,
+          room_id: isPrivate ? null : target,
+          target_user: isPrivate ? target : null,
+        };
+
+        fetch('/upload-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === 'success') {
+              // Recarrega mensagens para mostrar a imagem
+              if (isPrivate) {
+                loadPrivateMessages(target);
+              } else {
+                updateChat();
+              }
+            } else {
+              console.error('Erro ao enviar imagem:', data.message);
+              alert('Erro ao enviar imagem. Tamanho máximo: 5MB');
+            }
+          })
+          .catch((error) => {
+            console.error('Erro ao fazer upload:', error);
+            alert('Erro ao enviar imagem');
+          });
+      }
+
+      function renderMessage(msg) {
+        // Verifica se é uma imagem
+        if (msg.message && msg.message.startsWith('[IMAGE:')) {
+          const filename = msg.message.match(/\[IMAGE:(.*?)\]/)[1];
+          return `<img src="/uploads/${filename}" class="chat-image" onclick="openImageModal('/uploads/${filename}')" alt="Imagem enviada" />`;
+        }
+        return decodeMessage(msg.message);
+      }
+
+      function openImageModal(imageSrc) {
+        const modal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('modal-image');
+        modal.classList.add('active');
+        modalImg.src = imageSrc;
+      }
+
+      function closeImageModal() {
+        document.getElementById('image-modal').classList.remove('active');
+      }
+
+      // Event listeners para paste
+      document.addEventListener('DOMContentLoaded', function () {
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+          messageInput.addEventListener('paste', handlePaste);
+        }
+
+        // Fecha modal ao clicar fora da imagem
+        document
+          .getElementById('image-modal')
+          ?.addEventListener('click', function (e) {
+            if (e.target === this) {
+              closeImageModal();
+            }
+          });
+      });
+      // ========== FIM DO SISTEMA DE UPLOAD DE IMAGENS ==========
+
       // Atualiza o chat a cada 2 segundos (reduzido para economizar requisições)
       setInterval(updateChat, 2000);
 
@@ -1209,5 +1367,16 @@
         }
       });
     </script>
+
+    <!-- Modal para visualizar imagens -->
+    <div class="image-modal" id="image-modal" onclick="closeImageModal()">
+      <span class="close-modal">&times;</span>
+      <img
+        id="modal-image"
+        src=""
+        alt="Imagem ampliada"
+        onclick="event.stopPropagation()"
+      />
+    </div>
   </body>
 </html>

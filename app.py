@@ -1,15 +1,23 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from datetime import datetime
 import socket
 import json
 import os
 import hashlib
+import base64
+import uuid
 
 app = Flask(__name__)
 app.secret_key = 'sua_chave_secreta_aqui_mude_isso_em_producao'  # Necessário para sessions
 
-# Garante que o diretório de dados existe
+# Garante que os diretórios necessários existem
 os.makedirs('data', exist_ok=True)
+os.makedirs('data/uploads', exist_ok=True)
+
+# Configurações de upload
+UPLOAD_FOLDER = 'data/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 # Arquivo de usuários
 USERS_FILE = 'data/users.json'
@@ -387,6 +395,89 @@ def get_private_messages(target_user):
     except Exception as e:
         print(f"Erro ao buscar mensagens privadas: {e}")
         return jsonify([])
+
+def allowed_file(filename):
+    """Verifica se a extensão do arquivo é permitida."""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload-image', methods=['POST'])
+def upload_image():
+    """Endpoint para upload de imagens (paste ou arquivo)."""
+    if 'username' not in session:
+        return jsonify({'status': 'error', 'message': 'Não autenticado'}), 401
+    
+    try:
+        # Verifica se é paste (base64) ou upload de arquivo
+        if 'image_data' in request.json:
+            # Paste de clipboard (base64)
+            image_data = request.json['image_data']
+            room_id = request.json.get('room_id', 'geral')
+            is_private = request.json.get('is_private', False)
+            target_user = request.json.get('target_user', None)
+            
+            # Remove o prefixo data:image/...;base64,
+            if 'base64,' in image_data:
+                image_data = image_data.split('base64,')[1]
+            
+            # Decodifica e salva
+            image_bytes = base64.b64decode(image_data)
+            
+            # Gera nome único
+            filename = f"{uuid.uuid4()}.png"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            
+            with open(filepath, 'wb') as f:
+                f.write(image_bytes)
+            
+            # Cria mensagem com imagem
+            message = {
+                'user': session['username'],
+                'message': f'[IMAGE:{filename}]',
+                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'type': 'image'
+            }
+            
+            # Salva mensagem
+            if is_private and target_user:
+                # Mensagem privada
+                current_user = session['username']
+                users_sorted = sorted([current_user.lower(), target_user.lower()])
+                conversation_id = f"{users_sorted[0]}_{users_sorted[1]}"
+                conv_file = f'data/private_{conversation_id}.json'
+                
+                if os.path.exists(conv_file):
+                    with open(conv_file, 'r', encoding='utf-8') as f:
+                        messages = json.load(f)
+                else:
+                    messages = []
+                
+                message['from'] = current_user
+                message['to'] = target_user
+                message['date'] = datetime.now().strftime('%Y-%m-%d')
+                messages.append(message)
+                
+                with open(conv_file, 'w', encoding='utf-8') as f:
+                    json.dump(messages, f, indent=4, ensure_ascii=False)
+            else:
+                # Mensagem pública
+                if room_id not in room_messages:
+                    room_messages[room_id] = []
+                
+                room_messages[room_id].append(message)
+                save_messages(room_messages[room_id], f'chat_{room_id}.json')
+            
+            return jsonify({'status': 'success', 'filename': filename})
+        else:
+            return jsonify({'status': 'error', 'message': 'Nenhuma imagem fornecida'}), 400
+            
+    except Exception as e:
+        print(f"Erro ao fazer upload de imagem: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    """Serve arquivos de upload."""
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/sewage')
 def sewage():
